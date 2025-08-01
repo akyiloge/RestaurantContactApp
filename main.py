@@ -14,7 +14,7 @@ def main():
         # "Two Hands",
         # "Pies-N-Thighs",
         # "Gees Caribbean Restaurant",
-        "sweetgreen"
+        "Mangia"
     ]
 
     # tools_helper = RestaurantContactTools(restaurants)

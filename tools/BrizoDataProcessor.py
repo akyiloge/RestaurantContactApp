@@ -179,9 +179,10 @@ class BrizoDataProcessor:
         if not matches:
             for business_name, entries in business_index.items():
                 # Partial match or high similarity
-                if (associated_with_lower in business_name or
-                        business_name in associated_with_lower or
-                        self.similarity(associated_with_lower, business_name) > 0.85):
+                if (associated_with_lower == business_name
+                        # or business_name in associated_with_lower
+                        # or self.similarity(associated_with_lower, business_name) > 0.85
+                    ):
                     matches.extend(entries)
 
                     # Limit matches to prevent too many results
@@ -215,7 +216,17 @@ class BrizoDataProcessor:
 
         for restaurant_name, contacts in existing_data.items():
             processed += 1
-            print(f"Processing {processed}/{total_restaurants}: {restaurant_name}")
+            # print(f"Processing {processed}/{total_restaurants}: {restaurant_name}")
+
+            # Tüm mevcut contact'ların email ve name'lerini topla (duplicate kontrolü için)
+            all_existing_emails = set()
+            all_existing_names = set()
+
+            for contact in contacts:
+                if contact.get('email'):
+                    all_existing_emails.add(contact.get('email').lower().strip())
+                if contact.get('name'):
+                    all_existing_names.add(contact.get('name').lower().strip())
 
             enriched_contacts = []
 
@@ -230,7 +241,7 @@ class BrizoDataProcessor:
                     matching_brizo_entries = self.find_matching_businesses(associated_with, business_index)
 
                     if matching_brizo_entries:
-                        print(f"  Found {len(matching_brizo_entries)} matches for '{associated_with}'")
+                        # print(f"  Found {len(matching_brizo_entries)} matches for '{associated_with}'")
 
                         # Check if current contact exists in Brizo data (by name or email match)
                         current_contact_name = enriched_contact.get('name', '').lower().strip()
@@ -248,7 +259,7 @@ class BrizoDataProcessor:
                                 # Check if this Brizo contact matches current contact
                                 name_match = brizo_name and current_contact_name and (
                                         brizo_name == current_contact_name
-                                        #or self.similarity(brizo_name, current_contact_name) > 0.8
+                                    # or self.similarity(brizo_name, current_contact_name) > 0.8
                                 )
                                 email_match = brizo_email and current_contact_email and brizo_email == current_contact_email
 
@@ -267,14 +278,20 @@ class BrizoDataProcessor:
                                     enriched_contact['brizo_id'] = brizo_contact.get('id', '')
 
                                     contact_found_in_brizo = True
-                                    print(f"    Enriched existing contact: {enriched_contact['name']}")
+                                    # print(f"    Enriched existing contact: {enriched_contact['name']}")
                                     break
 
-                        # Add additional contacts from Brizo that don't match existing contact
-                        existing_emails = {enriched_contact.get('email', '').lower(),
-                                           enriched_contact.get('email_brizo', '').lower()}
-                        existing_names = {enriched_contact.get('name', '').lower()}
+                # Orijinal contact'ı ekle (sadece bir kere)
+                enriched_contacts.append(enriched_contact)
 
+            # Şimdi tüm restaurant'ın contact'ları için Brizo'dan YENİ contact'ları bul
+            for contact in contacts:
+                associated_with = contact.get('associated_with', '').strip()
+
+                if associated_with:
+                    matching_brizo_entries = self.find_matching_businesses(associated_with, business_index)
+
+                    if matching_brizo_entries:
                         for brizo_entry in matching_brizo_entries:
                             brizo_contact = brizo_entry.get('contact', {})
 
@@ -282,19 +299,13 @@ class BrizoDataProcessor:
                                 brizo_email = brizo_contact.get('email', '').lower().strip()
                                 brizo_name = brizo_contact.get('name', '').lower().strip()
 
-                                # Skip if this contact was already used to enrich existing contact
-                                if contact_found_in_brizo:
-                                    name_match = brizo_name and current_contact_name and (
-                                            brizo_name == current_contact_name or
-                                            self.similarity(brizo_name, current_contact_name) > 0.8
-                                    )
-                                    email_match = brizo_email and current_contact_email and brizo_email == current_contact_email
-                                    if name_match or email_match:
-                                        continue
+                                # Check if this is a completely NEW contact (not in existing data)
+                                is_new_contact = True
 
-                                # Check if this is a new contact (different email or name)
-                                is_new_contact = (brizo_email and brizo_email not in existing_emails) or \
-                                                 (brizo_name and brizo_name not in existing_names)
+                                if brizo_email and brizo_email in all_existing_emails:
+                                    is_new_contact = False
+                                if brizo_name and brizo_name in all_existing_names:
+                                    is_new_contact = False
 
                                 if is_new_contact:
                                     new_contact = {
@@ -325,13 +336,11 @@ class BrizoDataProcessor:
                                     # print(
                                     #     f"    Added new contact: {new_contact['name']} ({new_contact.get('email_brizo', 'no email')})")
 
-                                    # Track added emails/names
+                                    # Track added emails/names to prevent duplicates within this restaurant
                                     if brizo_email:
-                                        existing_emails.add(brizo_email)
+                                        all_existing_emails.add(brizo_email)
                                     if brizo_name:
-                                        existing_names.add(brizo_name)
-
-                enriched_contacts.append(enriched_contact)
+                                        all_existing_names.add(brizo_name)
 
             enriched_data[restaurant_name] = enriched_contacts
 
@@ -431,38 +440,22 @@ if __name__ == "__main__":
 
     sample_data = {
         "sweetgreen": [
-            {
-                "name": "Mykaila Dudley",
-                "associated_with": "sweetgreen",
-                "email": "mykaila.dudley@sweetgreen.com",
-                "phone": "18004881803",
-                "title": "Staff",
-                "confidence": "HIGH"
-            },
-            {
-                "name": "catering@sweetgreen.com",
-                "associated_with": "sweetgreen",
-                "email": "catering@sweetgreen.com",
-                "phone": "",
-                "title": "Staff",
-                "confidence": "HIGH"
-            },
-            {
-                "name": "hello@sweetgreen.com",
-                "associated_with": "sweetgreen",
-                "email": "hello@sweetgreen.com",
-                "phone": "",
-                "title": "Staff",
-                "confidence": "HIGH"
-            },
-            {
-                "name": "Stacey Langston",
-                "associated_with": "sweetgreen",
-                "email": "stacey.langston@sweetgreen.com",
-                "phone": "",
-                "title": "Staff",
-                "confidence": "HIGH"
-            }
+          {
+            "name": "Mykaila Dudley",
+            "associated_with": "sweetgreen",
+            "email": "mykaila.dudley@sweetgreen.com",
+            "phone": "917-563-6966",
+            "title": "Staff",
+            "confidence": "HIGH"
+          },
+          {
+            "name": "Catering Team",
+            "associated_with": "sweetgreen",
+            "email": "catering@sweetgreen.com",
+            "phone": "null",
+            "title": "Catering Team",
+            "confidence": "HIGH"
+          }
         ]
     }
 
@@ -471,6 +464,6 @@ if __name__ == "__main__":
 
     # Print to see the result
     print("\nFiltered Result:")
-    # print(json.dumps(filtered_result, indent=2))
+    print(json.dumps(filtered_result, indent=2))
 
     k = 2
