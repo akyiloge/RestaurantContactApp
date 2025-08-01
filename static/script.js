@@ -53,6 +53,24 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function sortContactsBySource(contacts) {
+        // Sort contacts: Email source first, then Brizo source
+        return contacts.sort((a, b) => {
+            const sourceA = a.source || 'Email';
+            const sourceB = b.source || 'Email';
+
+            if (sourceA === 'Email' && sourceB === 'Brizo') return -1;
+            if (sourceA === 'Brizo' && sourceB === 'Email') return 1;
+
+            // If same source, sort by confidence (HIGH > MEDIUM > LOW)
+            const confidenceOrder = { 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+            const confA = confidenceOrder[a.confidence] || 2;
+            const confB = confidenceOrder[b.confidence] || 2;
+
+            return confB - confA;
+        });
+    }
+
     function displayResults(data) {
         let html = '';
         let hasContacts = false;
@@ -63,34 +81,77 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (contacts && contacts.length > 0) {
                 hasContacts = true;
+
+                // Sort contacts by source
+                const sortedContacts = sortContactsBySource(contacts);
+
                 html += `
                     <table class="contacts-table">
                         <thead>
                             <tr>
+                                <th>Restaurant Name</th>
                                 <th>Name</th>
-                                <th>Email</th>
-                                <th>Phone</th>
-                                <th>Title</th>
+                                <th>Email / Email (Brizo)</th>
+                                <th>Phone / Phone (Brizo)</th>
+                                <th>Title / Title (Brizo)</th>
+                                <th>Source</th>
                                 <th>Select</th>
                             </tr>
                         </thead>
                         <tbody>
                 `;
 
-                contacts.forEach((contact, index) => {
+                sortedContacts.forEach((contact, index) => {
                     const confidence = contact.confidence || 'MEDIUM';
-                    const isChecked = confidence === 'HIGH' ? 'checked' : '';
+                    const source = contact.source || 'Email';
+                    const isChecked = confidence === 'HIGH' && source === 'Email' ? 'checked' : '';
                     const confidenceClass = `confidence-${confidence.toLowerCase()}`;
+                    const sourceClass = `source-${source.toLowerCase()}`;
+
+                    // Prepare email display
+                    let emailDisplay = escapeHtml(contact.email || 'N/A');
+                    if (contact.email_brizo) {
+                        if (contact.email) {
+                            emailDisplay += `<br><span class="brizo-data">${escapeHtml(contact.email_brizo)}</span>`;
+                        } else {
+                            emailDisplay = `<span class="brizo-data">${escapeHtml(contact.email_brizo)}</span>`;
+                        }
+                    }
+
+                    // Prepare phone display
+                    let phoneDisplay = escapeHtml(contact.phone || 'N/A');
+                    if (contact.phone_brizo) {
+                        if (contact.phone) {
+                            phoneDisplay += `<br><span class="brizo-data">${escapeHtml(contact.phone_brizo)}</span>`;
+                        } else {
+                            phoneDisplay = `<span class="brizo-data">${escapeHtml(contact.phone_brizo)}</span>`;
+                        }
+                    }
+
+                    // Prepare title display
+                    let titleDisplay = escapeHtml(contact.title || 'N/A');
+                    if (contact.title_brizo) {
+                        if (contact.title) {
+                            titleDisplay += `<br><span class="brizo-data">${escapeHtml(contact.title_brizo)}</span>`;
+                        } else {
+                            titleDisplay = `<span class="brizo-data">${escapeHtml(contact.title_brizo)}</span>`;
+                        }
+                    }
 
                     html += `
-                        <tr>
+                        <tr class="${sourceClass}">
+                            <td>${escapeHtml(restaurant)}</td>
                             <td>
                                 ${escapeHtml(contact.name || 'N/A')}
                                 <span class="confidence-badge ${confidenceClass}">${confidence}</span>
                             </td>
-                            <td>${escapeHtml(contact.email || 'N/A')}</td>
-                            <td>${escapeHtml(contact.phone || 'N/A')}</td>
-                            <td>${escapeHtml(contact.title || 'N/A')}</td>
+                            <td>${emailDisplay}</td>
+                            <td>${phoneDisplay}</td>
+                            <td>${titleDisplay}</td>
+                            <td>
+                                <span class="source-badge ${sourceClass}">${source}</span>
+                                ${contact.location_address ? `<br><small class="location">${escapeHtml(contact.location_address)}</small>` : ''}
+                            </td>
                             <td class="checkbox-cell">
                                 <input type="checkbox"
                                        class="contact-checkbox"

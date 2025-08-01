@@ -196,6 +196,153 @@
             border: none;
             border-top: 1px solid #dee2e6;
         }
+
+        /* Brizo data styling */
+        .brizo-data {
+            color: #6c757d;
+            font-style: italic;
+            font-size: 0.9em;
+        }
+
+        /* Source badges */
+        .source-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-left: 5px;
+        }
+
+        .source-badge.source-email {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .source-badge.source-brizo {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        /* Row styling based on source */
+        .contacts-table tbody tr.source-email {
+            background-color: #f8fff9;
+        }
+
+        .contacts-table tbody tr.source-brizo {
+            background-color: #f1f9fc;
+        }
+
+        .contacts-table tbody tr.source-email:hover {
+            background-color: #e8f5e8;
+        }
+
+        .contacts-table tbody tr.source-brizo:hover {
+            background-color: #e1f3f8;
+        }
+
+        /* Location address styling */
+        .location {
+            color: #6c757d;
+            font-size: 0.8em;
+            font-style: italic;
+        }
+
+        /* Updated table headers */
+        .contacts-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            text-align: left;
+            padding: 12px 8px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        /* Confidence badges remain the same but add some spacing */
+        .confidence-badge {
+            margin-left: 8px;
+        }
+
+        /* Better cell spacing for multi-line content */
+        .contacts-table td {
+            padding: 12px 8px;
+            vertical-align: top;
+            line-height: 1.4;
+        }
+
+        /* Checkbox cell alignment */
+        .checkbox-cell {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        /* Source column specific styling */
+        .contacts-table td:nth-child(5) {
+            min-width: 120px;
+        }
+
+        /* Multi-line data in cells */
+        .contacts-table td br + span {
+            display: block;
+            margin-top: 4px;
+        }
+
+        /* Restaurant section improvements for better data visibility */
+        .restaurant-section {
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .restaurant-header {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 15px 20px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        /* Improved table styling */
+        .contacts-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+        }
+
+        .contacts-table th:nth-child(2),
+        .contacts-table th:nth-child(3),
+        .contacts-table th:nth-child(4) {
+            min-width: 180px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1200px) {
+            .contacts-table {
+                font-size: 0.9em;
+            }
+
+            .contacts-table th:nth-child(2),
+            .contacts-table th:nth-child(3),
+            .contacts-table th:nth-child(4) {
+                min-width: 150px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .contacts-table {
+                font-size: 0.8em;
+            }
+
+            .contacts-table th,
+            .contacts-table td {
+                padding: 8px 4px;
+            }
+
+            .brizo-data {
+                font-size: 0.85em;
+            }
+        }
     </style>
 </head>
 <body>

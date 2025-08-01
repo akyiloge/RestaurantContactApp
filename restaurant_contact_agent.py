@@ -7,13 +7,14 @@ import time
 from typing import List, Dict
 
 from tools.restaurant_tools import RestaurantContactTools
+from tools.BrizoDataProcessor import BrizoDataProcessor
 
 class RestaurantContactAgent:
     def __init__(self, restaurant_list: List[str], gmail_credentials_info: Dict):
-    #def __init__(self, restaurant_list: List[str]):
+    # def __init__(self, restaurant_list: List[str]):
         self.restaurant_list = restaurant_list
         self.contactTool = RestaurantContactTools(gmail_credentials_info)
-        #self.contactTool = RestaurantContactTools()
+        # self.contactTool = RestaurantContactTools()
         self.all_contacts = {}
 
     # def create_tools(self):
@@ -23,36 +24,10 @@ class RestaurantContactAgent:
 
         for restaurant in self.restaurant_list:
             # Step 1 - Get email data
-            emailData = self.contactTool.search_and_extract_contacts(restaurant)
+            email_data = self.contactTool.search_and_extract_contacts(restaurant)
 
-            output = self.contactTool.analyze_email_blocks_tool(emailData, restaurant)
+            output = self.contactTool.analyze_email_blocks_tool(email_data, restaurant)
             r = 2
-
-            # llm = ChatOpenAI(temperature=0, model_name="gpt-4o-mini")
-            #
-            # tools = self.create_tools()
-            # react_prompt = hub.pull("hwchase17/react")
-            # agent = create_react_agent(llm=llm, tools=tools, prompt=react_prompt)
-            # agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-            #
-            # for restaurant in self.restaurant_list:
-            #     print(f"\n{'=' * 50}")
-            #     print(f"Processing: {restaurant}")
-            #     print(f"{'=' * 50}")
-            #
-            #     task = f"""Find contacts for "{restaurant}" restaurant using these exact steps:
-            #
-            #     1. Call Search_Restaurant_Emails with input: {restaurant}
-            #     2. You will receive email blocks as output (starting with === EMAIL BLOCK)
-            #     3. Call Analyze_Email_Blocks with the COMPLETE email blocks output from step 1
-            #     4. Return the final JSON result
-            #
-            #     IMPORTANT: When calling Analyze_Email_Blocks, copy-paste the ENTIRE output from Search_Restaurant_Emails, not a reference to it."""
-            #
-            #     try:
-            #         result = agent_executor.invoke({"input": task})
-            #         output = result["output"]
-            #
 
             try:
                 if isinstance(output, dict):
@@ -105,8 +80,13 @@ class RestaurantContactAgent:
         #     except Exception as e:
         #         print(f"Error processing {restaurant}: {e}")
         #         self.all_contacts[restaurant] = f"Error: {e}"
+        print("___")
+        print(self.all_contacts)
 
-        return self.all_contacts
+        processor = BrizoDataProcessor()
+        filtered_clients = processor.filter_clients(self.all_contacts)
+
+        return processor.enrich_with_brizo_data(filtered_clients, "new_york_brizo")
 
     # def save_results(self, filename: str = "restaurant_contacts.json"):
     #     with open(filename, 'w', encoding='utf-8') as f:

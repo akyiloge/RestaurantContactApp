@@ -103,7 +103,6 @@ class GmailService:
             elif name == 'date':
                 email_data['date'] = header['value']
 
-        # Email body'sini al
         email_data['body'] = self.extract_email_body(payload)
 
         return email_data

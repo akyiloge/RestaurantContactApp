@@ -10,18 +10,19 @@ from typing import List, Dict
 
 class RestaurantContactTools:
     def __init__(self, gmail_credentials_info: Dict):
-    #def __init__(self):
+    # def __init__(self):
         self.gmail_service = GmailService(gmail_credentials_info)
-        #self.gmail_service = GmailService()
+        # self.gmail_service = GmailService()
         self.email_analyzer = EmailAnalyzer()
         self.found_emails = set()
         self.email_contacts_dict = {}
 
     def search_and_extract_contacts(self, restaurant_name: str) -> str:
-        """Restaurant için email ara ve tüm contactları çıkar"""
+        """Search emails and extract contacts"""
         self.found_emails.clear()
 
         unique_emails = []
+        self.email_contacts_dict.clear()
 
         # If the file exists, use it
         # if os.path.exists("unique_addresses.json"):
@@ -55,7 +56,9 @@ class RestaurantContactTools:
             emails = self.gmail_service.search_emails(newQuery, max_results=200)
             all_emails.extend(emails)
 
-        # Duplicate'leri kaldır
+        all_emails = self.filter_emails_by_body_content(all_emails)
+
+        # Remove duplicates
         seen_ids = set()
 
         for email in all_emails:
@@ -305,7 +308,28 @@ class RestaurantContactTools:
         # current_blocks.sort(key=lambda x: x['score'], reverse=True)
         # return [block['text'] for block in current_blocks[:5]]
 
-    import re
+
+    def filter_emails_by_body_content(self, emails):
+        """
+        Filter out emails containing specific phrases in body
+        """
+        excluded_phrases = [
+            "Potential Duplicate Restaurants",
+            "unsubscribe"
+        ]
+
+        filtered_emails = []
+        for email in emails:
+            body = email.get('body', '').lower()
+
+            # Check if any excluded phrase exists in body
+            should_exclude = any(phrase.lower() in body for phrase in excluded_phrases)
+
+            if not should_exclude:
+                filtered_emails.append(email)
+
+        return filtered_emails
+
 
     def parse_email_string(self, email_string):
         """
@@ -444,91 +468,6 @@ class RestaurantContactTools:
         return '\n'.join(email_content_blocks)
 
 
-    def _extract_all_contacts_with_llm(self, email_batch: str, restaurant_name: str) -> str:
-        llm = ChatOpenAI(temperature=0, model_name="gpt-4o-mini")
-
-        prompt = f"""Extract ALL {restaurant_name} restaurant staff contacts from the email blocks below.
-
-        INCLUDE (Restaurant Staff):
-        ✅ Emails from {restaurant_name} restaurant domain
-        ✅ Restaurant employees in To/From fields 
-        ✅ People with restaurant job titles (Manager, Chef, Admin, Events, Assistant, etc.)
-        ✅ Anyone who works AT the restaurant location
-        ✅ Staff emails mentioned in signatures or body text
-
-        EXCLUDE (Non-Restaurant):
-        ❌ Generic system emails (noreply@, support@, discussion-reply@)
-        ❌ Food delivery service employees  
-        ❌ Customer emails
-        ❌ Third-party service providers
-
-        SEARCH CAREFULLY IN:
-        - Primary contact emails
-        - All contacts list
-        - From: field emails
-        - To: field emails  
-        - Email signatures
-        - Quoted/forwarded message headers
-        - Body text mentions
-
-        EMAIL BLOCKS:
-        {email_batch}
-
-        JSON OUTPUT:
-        [
-          {{
-            "name": "Full Name",
-            "email": "contact@restaurant.com", 
-            "phone": "phone if found",
-            "title": "job title if mentioned",
-            "source": "primary_contact/all_contacts/signature/body",
-            "confidence": 0.8
-          }}
-        ]
-
-        Focus on {restaurant_name} restaurant staff contacts only.
-        Return empty array [] only if NO restaurant staff found.
-        """
-
-        try:
-            response = llm.invoke(prompt)
-            content = response.content
-
-            print("7" * 90)
-            print(content)
-            print("7" * 90)
-
-            # Clean Markdown code blocks
-            if content.startswith("```json"):
-                content = content[7:]  # remove ```json
-            if content.startswith("```"):
-                content = content[3:]  # remove ```
-            if content.endswith("```"):
-                content = content[:-3]  # remove ```
-
-            content = content.strip()
-
-            contacts = json.loads(content)
-
-            return json.dumps({
-                "restaurant": restaurant_name,
-                "contacts": contacts
-            })
-        except Exception as e:
-            print(f"LLM Error: {e}")
-            return json.dumps({"restaurant": restaurant_name, "contacts": [], "error": str(e)})
-
-        # try:
-        #     response = llm.invoke(prompt)
-        #     contacts = json.loads(response.content)
-        #
-        #     return json.dumps({
-        #         "restaurant": restaurant_name,
-        #         "contacts": contacts
-        #     })
-        # except:
-        #     return json.dumps({"restaurant": restaurant_name, "contacts": []})
-
     def analyze_email_blocks_tool(self, email_blocks: str, restaurant_name: str) -> str:
         """Analyze Email blocks and extract staff contacts"""
         llm = ChatOpenAI(temperature=0, model_name="gpt-4o-mini")
@@ -615,6 +554,7 @@ class RestaurantContactTools:
         [
           {{
             "name": "Name",
+            "associated_with": "associated with",
             "email": "email@domain.com", 
             "phone": "phone_number",
             "title": "title_or_company_if_available",  

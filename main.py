@@ -12,7 +12,9 @@ def main():
     restaurants = [
         # "Mangia",
         # "Two Hands",
-        "Two Hands"
+        # "Pies-N-Thighs",
+        # "Gees Caribbean Restaurant",
+        "sweetgreen"
     ]
 
     # tools_helper = RestaurantContactTools(restaurants)
